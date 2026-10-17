@@ -24,6 +24,11 @@ Windows için ağ izleme ve hız sınırlama aracı. Hangi programın interneti 
    ```
    pip install -r requirements.txt
    ```
+   Bu komut üç kütüphaneyi kurar: **psutil** (programları bulur), **scapy** (trafiği dinler) ve **pydivert** (hız sınırlayıcı). İstersen tek tek de kurabilirsin:
+   ```
+   pip install psutil scapy pydivert
+   ```
+   pydivert olmadan program yine açılır ve trafiği gösterir, ama hız sınırı koyamazsın.
 5. **Çalıştır:** `netlistener.py` dosyasına çift tıkla. "Yönetici olarak yeniden başlatılsın mı?" sorusuna ve Windows'un izin penceresine **Evet** de.
 
 Konsol penceresi açılmasın istersen dosyanın uzantısını `.pyw` yap.
