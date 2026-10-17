@@ -1,5 +1,7 @@
 # NetListener
 
+**Sürüm 0.01** · [Sürüm notları](CHANGELOG.md) · [İndir](https://github.com/richman-cmd/netlistener/releases/latest)
+
 Windows için ağ izleme ve hız sınırlama aracı. Hangi programın interneti ne kadar kullandığını canlı gösterir; programlara, İnternet / Yerel ağ trafiğine ya da tüm bilgisayara indirme ve yükleme sınırı koymanı sağlar.
 
 ## Özellikler
@@ -15,15 +17,26 @@ Windows için ağ izleme ve hız sınırlama aracı. Hangi programın interneti 
 
 ## Kurulum
 
-1. [Python 3](https://www.python.org/downloads/) kur. Kurulumda "Add Python to PATH" kutusunu işaretle.
-2. [Npcap](https://npcap.com/#download) kur. Kurulumda **"Install Npcap in WinPcap API-compatible Mode"** işaretli olsun.
-3. Komut İstemi'nde bağımlılıkları kur:
+1. **İndir:** [Son sürüm sayfasından](https://github.com/richman-cmd/netlistener/releases/latest) `netlistener-0.01.zip` dosyasını indir ve bir klasöre çıkar.
+2. **Python 3:** [python.org](https://www.python.org/downloads/) adresinden kur. Kurulumun ilk ekranında **"Add Python to PATH"** kutusunu işaretle.
+3. **Npcap:** [npcap.com](https://npcap.com/#download) adresinden kur. Seçenekler ekranında **"Install Npcap in WinPcap API-compatible Mode"** işaretli olsun, diğer iki kutu boş kalabilir.
+4. **Bağımlılıklar:** Zip'i çıkardığın klasörde adres çubuğuna `cmd` yazıp Enter'a bas, açılan pencerede şunu çalıştır:
    ```
    pip install -r requirements.txt
    ```
-4. `netlistener.py` dosyasına çift tıkla. Yönetici izni istenirse **Evet** de.
+5. **Çalıştır:** `netlistener.py` dosyasına çift tıkla. "Yönetici olarak yeniden başlatılsın mı?" sorusuna ve Windows'un izin penceresine **Evet** de.
 
 Konsol penceresi açılmasın istersen dosyanın uzantısını `.pyw` yap.
+
+### Sorun giderme
+
+| Belirti | Çözüm |
+|---|---|
+| "Paket dinlenemiyor" uyarısı | Npcap kurulu mu, program yönetici olarak mı açıldı, kontrol et |
+| "pydivert kütüphanesi gerekiyor" | `pip install pydivert` çalıştır, programı yeniden aç |
+| Hız sınırlayıcı hata veriyor | Programı yönetici olarak aç. Antivirüs WinDivert'i engelliyorsa izin ver |
+| `pip` komutu bulunamadı | Python kurulumunda "Add Python to PATH" işaretlenmemiş; `py -m pip install -r requirements.txt` dene |
+| Liste boş kalıyor | Tarayıcıda bir sayfa açıp trafik oluştur; birkaç saniye bekle |
 
 ## Kullanım
 

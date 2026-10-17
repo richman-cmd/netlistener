@@ -41,6 +41,7 @@ import tkinter as tk
 from tkinter import font as tkfont
 from tkinter import messagebox, ttk
 
+__version__ = "0.01"
 IS_WIN = os.name == "nt"
 
 
@@ -1009,7 +1010,7 @@ class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("NetListener — Ağ Kullanımı")
+        self.title(f"NetListener {__version__} — Ağ Kullanımı")
         try:
             self.k = max(1.0, self.winfo_fpixels("1i") / 96)
         except tk.TclError:
@@ -1140,7 +1141,10 @@ class App(tk.Tk):
         head.pack(fill="x")
         left = ttk.Frame(head)
         left.pack(side="left", fill="x", expand=True)
-        ttk.Label(left, text="NetListener", font=self.f_title).pack(anchor="w")
+        title_row = ttk.Frame(left)
+        title_row.pack(anchor="w")
+        ttk.Label(title_row, text="NetListener", font=self.f_title).pack(side="left")
+        ttk.Label(title_row, text=f"v{__version__}", style="Muted.TLabel").pack(side="left", padx=(8, 0), pady=(6, 0))
         self.iface_label = ttk.Label(left, text="Dinlenen bağlantılar: …", style="Muted.TLabel")
         self.iface_label.pack(anchor="w")
         stats = ttk.Frame(head)
