@@ -6,7 +6,7 @@ Kurulum (Windows):
     1) Npcap:  https://npcap.com  ("WinPcap API-compatible Mode" işaretli)
     2) pip install psutil scapy pydivert pystray pillow
     3) Dosyaya çift tıklayın. Yönetici izni yoksa program yeniden açılmayı önerir.
-       Konsol penceresi istemiyorsanız uzantıyı .pyw yapın.
+       Siyah konsol penceresi kendiliğinden kapanır; program arka planda (pythonw ile) çalışır.
 
 Tablo (ağaç):
     Bilgisayar   -> tüm trafik; sınır sütunları = genel sınır
@@ -43,6 +43,18 @@ import time
 import webbrowser
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
+
+# Konsolsuz (pythonw) çalışırken print ve hata çıktıları kaybolmasın: günlük dosyasına yaz.
+if __name__ == "__main__" and (sys.stdout is None or sys.stderr is None):
+    try:
+        _log_dir = os.path.join(os.environ.get("APPDATA") or os.path.expanduser("~"), "NetWatch")
+        os.makedirs(_log_dir, exist_ok=True)
+        _log = open(os.path.join(_log_dir, "netlistener.log"), "a", encoding="utf-8", buffering=1)
+        _log.write(f"\n--- {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
+        sys.stdout = sys.stdout or _log
+        sys.stderr = sys.stderr or _log
+    except OSError:
+        pass
 
 import tkinter as tk
 from tkinter import font as tkfont
@@ -796,11 +808,67 @@ def is_admin():
         return True
 
 
+def windowless_python():
+    """python.exe'nin yanındaki pythonw.exe (konsol penceresi açmaz)."""
+    exe = sys.executable or ""
+    folder, name = os.path.split(exe)
+    if name.lower() == "pythonw.exe":
+        return exe
+    cand = os.path.join(folder, "pythonw.exe")
+    return cand if os.path.isfile(cand) else None
+
+
 def relaunch_as_admin():
     script = os.path.abspath(sys.argv[0])
     params = " ".join(f'"{a}"' for a in [script] + sys.argv[1:])
-    rc = ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
+    exe = windowless_python() or sys.executable
+    rc = ctypes.windll.shell32.ShellExecuteW(None, "runas", exe, params, None, 1)
     return rc > 32
+
+
+_LAUNCHERS = {"py.exe", "pyw.exe", "python.exe", "pythonw.exe", "python3.exe"}
+
+
+def console_window_is_ours():
+    """Siyah pencere yalnızca bu program için mi açıldı (çift tıklama), yoksa
+    kullanıcının kendi açtığı bir Komut İstemi mi? Yalnızca ilkinde gizleriz."""
+    if not IS_WIN:
+        return False
+    try:
+        k32 = ctypes.windll.kernel32
+        if not k32.GetConsoleWindow():
+            return False
+        arr = (ctypes.c_uint32 * 32)()
+        n = k32.GetConsoleProcessList(arr, 32)
+        if n <= 0 or n > 32:
+            return False
+        others = {arr[i] for i in range(n)} - {os.getpid()}
+        names = {psutil.Process(p).name().lower() for p in others}
+        return names <= _LAUNCHERS
+    except Exception:
+        return False
+
+
+def hide_console_window():
+    try:
+        hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+        if hwnd:
+            ctypes.windll.user32.ShowWindow(hwnd, 0)  # SW_HIDE
+    except Exception:
+        pass
+
+
+def relaunch_windowless():
+    """Aynı programı konsolsuz başlat; başarılıysa True (çağıran çıkmalı)."""
+    exe = windowless_python()
+    if not exe or os.path.normcase(exe) == os.path.normcase(sys.executable or ""):
+        return False
+    try:
+        subprocess.Popen([exe, os.path.abspath(sys.argv[0])] + sys.argv[1:],
+                         close_fds=True, creationflags=0x00000008 | 0x00000200)  # DETACHED | NEW_GROUP
+        return True
+    except OSError:
+        return False
 
 
 def run_quiet(cmd):
@@ -2256,6 +2324,9 @@ def main():
     if signal_existing():  # zaten açık: pencereyi öne getir ve çık
         sys.exit(0)
     if IS_WIN:
+        own_console = console_window_is_ours()
+        if own_console:
+            hide_console_window()  # siyah pencereyi hemen gizle
         try:
             ctypes.windll.shcore.SetProcessDpiAwareness(1)
         except Exception:
@@ -2268,8 +2339,12 @@ def main():
                 "Ağ trafiğini okumak, hız sınırlamak ve program engellemek için yönetici izni gerekiyor.\n\n"
                 "Yönetici olarak yeniden başlatılsın mı?")
             root.destroy()
-            if again and relaunch_as_admin():
+            if again and relaunch_as_admin():  # pythonw ile, konsolsuz açılır
                 sys.exit(0)
+        # Çift tıklamayla açılan siyah pencereden kurtul: konsolsuz kopyayı başlat, bu kopya çıksın.
+        # (Kullanıcının kendi Komut İstemi'nden çalıştırıldıysa dokunmayız.)
+        if own_console and relaunch_windowless():
+            sys.exit(0)
     server = start_instance_server()
     try:
         App().mainloop()

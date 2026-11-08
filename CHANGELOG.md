@@ -9,6 +9,7 @@
 - İlk kez tepsiye inerken nasıl kapatılacağını anlatan bir Windows bildirimi çıkar.
 - Tek kopya: program zaten açıkken yeniden çalıştırılırsa yeni kopya başlamaz, açık olan pencere öne gelir.
 - Pencere gizliyken tablo ve grafik çizilmez, işlemci kullanımı düşer.
+- Siyah konsol penceresi kalmaz: çift tıklamayla açıldığında program kendini konsolsuz (`pythonw`) yeniden başlatır. Komut İstemi'nden çalıştırıldığında konsola dokunulmaz. Hata kayıtları `%APPDATA%\NetWatch\netlistener.log` dosyasına yazılır.
 - Daha önce ağ kullanmış ama şu an kullanmayan (pasif) programlar ve bağlantılar kırmızı görünür. Engelli programlar karışmasın diye ayrı bir üstü çizili simge ve kalın yazıyla gösterilir.
 
 ### Gereksinimler

@@ -33,7 +33,7 @@ Windows için ağ izleme ve hız sınırlama aracı. Hangi programın interneti 
    pydivert olmadan program yine açılır ve trafiği gösterir, ama hız sınırı koyamazsın. pystray olmadan tepsi simgesi olmaz; o durumda çarpı pencereyi simge durumuna küçültür ve araç çubuğunda bir **Çıkış** düğmesi görünür.
 5. **Çalıştır:** `netlistener.py` dosyasına çift tıkla. "Yönetici olarak yeniden başlatılsın mı?" sorusuna ve Windows'un izin penceresine **Evet** de.
 
-Konsol penceresi açılmasın istersen dosyanın uzantısını `.pyw` yap.
+Açılışta bir an görünen siyah konsol penceresi kendiliğinden kapanır; program arka planda (konsolsuz `pythonw` ile) çalışır ve yalnızca kendi penceresi ile tepsi simgesi kalır. Komut İstemi'nden `python netlistener.py` ile çalıştırırsan o pencereye dokunulmaz. Hata kayıtları `%APPDATA%\NetWatch\netlistener.log` dosyasına yazılır.
 
 ### Sorun giderme
 
@@ -45,6 +45,7 @@ Konsol penceresi açılmasın istersen dosyanın uzantısını `.pyw` yap.
 | "pydivert kütüphanesi gerekiyor" | `pip install pydivert` çalıştır, programı yeniden aç |
 | Hız sınırlayıcı hata veriyor | Programı yönetici olarak aç. Antivirüs WinDivert'i engelliyorsa izin ver |
 | `pip` komutu bulunamadı | Python kurulumunda "Add Python to PATH" işaretlenmemiş; `py -m pip install -r requirements.txt` dene |
+| Program açılmıyor, hiçbir pencere çıkmıyor | `%APPDATA%\NetWatch\netlistener.log` dosyasına bak; ya da Komut İstemi'nde `python netlistener.py` ile çalıştırıp hatayı gör |
 | Liste boş kalıyor | Tarayıcıda bir sayfa açıp trafik oluştur; birkaç saniye bekle |
 
 ## Kullanım
