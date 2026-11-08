@@ -4,7 +4,7 @@ netlistener.py — Hangi program ağı ne kadar kullanıyor? + hız sınırlayı
 
 Kurulum (Windows):
     1) Npcap:  https://npcap.com  ("WinPcap API-compatible Mode" işaretli)
-    2) pip install psutil scapy pydivert
+    2) pip install psutil scapy pydivert pystray pillow
     3) Dosyaya çift tıklayın. Yönetici izni yoksa program yeniden açılmayı önerir.
        Konsol penceresi istemiyorsanız uzantıyı .pyw yapın.
 
@@ -21,12 +21,19 @@ Fareyle:
     - Öncelik hücresine tıkla: Düşük / Normal / Yüksek / Kritik
       (öncelik, genel ya da filtre sınırı dolduğunda kimin önce geçeceğini belirler)
     - Sütun başlığı: sırala   ·   Satır: grafikte göster   ·   Sağ tık: diğer işlemler
+
+Kapatma:
+    Pencerenin çarpısı programı kapatmaz, sistem tepsisine (saatin yanına) indirir;
+    izleme ve hız sınırları çalışmaya devam eder. Tamamen kapatmak için tepsi
+    simgesine sağ tıklayıp "Çıkış"ı seçin. Program ikinci kez açılırsa yeni bir
+    kopya başlamaz, açık olan pencere öne gelir.
 """
 
 import ctypes
 import ipaddress
 import json
 import os
+import queue
 import re
 import socket
 import subprocess
@@ -41,7 +48,7 @@ import tkinter as tk
 from tkinter import font as tkfont
 from tkinter import messagebox, ttk
 
-__version__ = "0.01"
+__version__ = "0.02"
 IS_WIN = os.name == "nt"
 
 
@@ -66,6 +73,17 @@ try:
     import pydivert
 except Exception:
     pydivert = None
+
+try:  # sistem tepsisi simgesi için
+    from PIL import Image, ImageDraw
+except Exception:
+    Image = None
+try:
+    import pystray
+except Exception:
+    pystray = None
+if Image is None:
+    pystray = None
 
 
 UNKNOWN = -1
@@ -792,6 +810,78 @@ def run_quiet(cmd):
     return subprocess.run(cmd, **kwargs)
 
 
+# =========================================================================== #
+# Tek örnek: program ikinci kez açılırsa var olan pencereyi öne getir
+# =========================================================================== #
+UI_QUEUE = queue.Queue()      # tepsi ve ikinci örnekten gelen komutlar ("show", "quit" ...)
+INSTANCE_PORT = 47391
+INSTANCE_MAGIC = b"netlistener-goster\n"
+
+
+def signal_existing():
+    """Çalışan bir NetListener varsa ona 'göster' der ve True döner."""
+    try:
+        with socket.create_connection(("127.0.0.1", INSTANCE_PORT), timeout=1) as s:
+            s.sendall(INSTANCE_MAGIC)
+            return s.recv(8) == b"ok\n"
+    except OSError:
+        return False
+
+
+def start_instance_server():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if IS_WIN and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+    try:
+        s.bind(("127.0.0.1", INSTANCE_PORT))
+        s.listen(4)
+    except OSError:
+        s.close()
+        return None
+
+    def loop():
+        while True:
+            try:
+                c, _ = s.accept()
+            except OSError:
+                return
+            with c:
+                c.settimeout(1)
+                try:
+                    if c.recv(64) == INSTANCE_MAGIC:
+                        c.sendall(b"ok\n")
+                        UI_QUEUE.put("show")
+                except OSError:
+                    pass
+
+    threading.Thread(target=loop, daemon=True).start()
+    return s
+
+
+def tray_image(size=64):
+    """Tepsi simgesi: koyu kare üstünde mavi aşağı, turuncu yukarı ok."""
+    def rgb(h):
+        return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
+
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle((1, 1, size - 2, size - 2), radius=size // 5, fill=rgb(PANEL_2))
+    shaft, head = size * 0.085, size * 0.2
+    top, bot = size * 0.17, size * 0.83
+
+    def arrow(cx, up, color):
+        if up:
+            d.polygon([(cx, top), (cx - head, top + head), (cx + head, top + head)], fill=color)
+            d.rectangle((cx - shaft, top + head - 1, cx + shaft, bot), fill=color)
+        else:
+            d.polygon([(cx, bot), (cx - head, bot - head), (cx + head, bot - head)], fill=color)
+            d.rectangle((cx - shaft, top, cx + shaft, bot - head + 1), fill=color)
+
+    arrow(size * 0.34, False, rgb(DOWN))
+    arrow(size * 0.66, True, rgb(UP))
+    return img
+
+
 class Firewall:
     PREFIX = "NetWatch engel - "  # mevcut güvenlik duvarı kuralları bu adla kayıtlı
 
@@ -1053,12 +1143,18 @@ class App(tk.Tk):
         self.adapter_widgets = {}
         self.editor = None
         self._flashing = False
+        self._tray_hint_shown = False
+        self.exit_btn = None
 
         self._fonts()
         self._style()
         self.icons = make_icons(self.px(14))
+        self.tray = self._make_tray()
         self._build()
-        self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self._set_window_icon()
+        self.protocol("WM_DELETE_WINDOW", self._on_close)   # çarpı: tepsiye küçült
+        self._start_tray()
+        self.after(150, self._poll_queue)
 
         self.pool.scan()
         start_background(self.conn_map, self.pool)
@@ -1157,8 +1253,11 @@ class App(tk.Tk):
 
         bar = ttk.Frame(outer, padding=(0, 10, 0, 10))
         bar.pack(fill="x")
+        self.toolbar = bar
         self.pause_btn = ttk.Button(bar, text="⏸  Duraklat", command=self._toggle_pause)
         self.pause_btn.pack(side="left")
+        if self.tray is None:
+            self._add_exit_button()
         ttk.Button(bar, text="↺  Sıfırla", command=self._reset).pack(side="left", padx=(8, 0))
         if self.firewall:
             ttk.Button(bar, text="⛔  Engellenenler", command=self._show_blocked).pack(side="left", padx=(8, 0))
@@ -1275,7 +1374,8 @@ class App(tk.Tk):
         csnap = self.conn_counters.swap(now)
         self.conn_rates = {k: (v[0] / elapsed, v[1] / elapsed) for k, v in csnap.items()}
         adapters = self._read_adapters(elapsed)
-        if not self.paused:
+        self._update_tray_title()
+        if not self.paused and self.state() != "withdrawn":
             self._render()
             self._draw_chart()
             self._render_adapters(adapters)
@@ -2022,13 +2122,126 @@ class App(tk.Tk):
         else:
             messagebox.showerror("Paket dinlenemiyor", f"Programı sudo ile çalıştırın.\n\nAyrıntı: {err}")
 
+    # ------------------------------------------------------------------ tepsi / kapanış
+    def _make_tray(self):
+        if not (IS_WIN and pystray):
+            return None
+        try:
+            menu = pystray.Menu(
+                pystray.MenuItem("NetListener'ı göster", lambda icon, item: UI_QUEUE.put("show"), default=True),
+                pystray.MenuItem(lambda item: self._tray_speed_text(), lambda icon, item: None, enabled=False),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem("Çıkış", lambda icon, item: UI_QUEUE.put("quit")),
+            )
+            return pystray.Icon("netlistener", tray_image(64), f"NetListener {__version__}", menu)
+        except Exception:
+            return None
+
+    def _start_tray(self):
+        if not self.tray:
+            return
+        icon = self.tray
+
+        def run():
+            try:
+                icon.run()
+            except Exception:
+                UI_QUEUE.put("tray_failed")
+
+        threading.Thread(target=run, daemon=True).start()
+
+    def _set_window_icon(self):
+        if Image is None:
+            return
+        try:
+            from PIL import ImageTk
+            self._win_icon = ImageTk.PhotoImage(tray_image(64))
+            self.iconphoto(True, self._win_icon)
+        except Exception:
+            pass
+
+    def _tray_speed_text(self):
+        d, u = self.totals
+        return f"↓ {fmt_rate(d, self.unit())}    ↑ {fmt_rate(u, self.unit())}"
+
+    def _update_tray_title(self):
+        if not self.tray:
+            return
+        text = f"NetListener {__version__}\n{self._tray_speed_text()}"
+        if self.shaper.active:
+            text += f"\nHız sınırı açık ({self.shaper.rule_count} kural)"
+        try:
+            self.tray.title = text[:127]
+        except Exception:
+            pass
+
+    def _add_exit_button(self):
+        if self.exit_btn is not None:
+            return
+        self.exit_btn = ttk.Button(self.toolbar, text="⏻  Çıkış", command=self._quit)
+        self.exit_btn.pack(side="left", padx=(0, 8), before=self.pause_btn)
+
+    def _poll_queue(self):
+        try:
+            while True:
+                cmd = UI_QUEUE.get_nowait()
+                if cmd == "show":
+                    self._show()
+                elif cmd == "quit":
+                    self._quit()
+                    return
+                elif cmd == "tray_failed":
+                    self.tray = None
+                    self._add_exit_button()
+                    self._show()
+        except queue.Empty:
+            pass
+        self.after(150, self._poll_queue)
+
+    def _show(self):
+        self.deiconify()
+        self.state("normal")
+        self.lift()
+        try:
+            self.attributes("-topmost", True)
+            self.after(300, lambda: self.attributes("-topmost", False))
+        except tk.TclError:
+            pass
+        self.focus_force()
+        self._render()
+        self._draw_chart()
+
     def _on_close(self):
-        self.shaper.stop()
+        """Çarpı: program kapanmaz, tepsiye iner. Çıkış yalnızca tepsi menüsünden."""
+        self._commit_editor()
+        if self.tray:
+            self.withdraw()
+            if not self._tray_hint_shown:
+                self._tray_hint_shown = True
+                try:
+                    self.tray.notify("Kapatmak için saatin yanındaki simgeye sağ tıklayıp Çıkış'ı seçin.",
+                                     "NetListener arka planda çalışıyor")
+                except Exception:
+                    pass
+        else:
+            self.iconify()
+            self._flash("Program kapanmadı, simge durumuna küçültüldü. Kapatmak için Çıkış düğmesini kullanın "
+                        "(tepsi simgesi için: pip install pystray pillow).")
+
+    def _quit(self):
+        if self.tray:
+            try:
+                self.tray.stop()
+            except Exception:
+                pass
+        self.shaper.stop()  # sıradaki paketleri gönder, sürücüyü bırak
         self.destroy()
 
 
 # =========================================================================== #
 def main():
+    if signal_existing():  # zaten açık: pencereyi öne getir ve çık
+        sys.exit(0)
     if IS_WIN:
         try:
             ctypes.windll.shcore.SetProcessDpiAwareness(1)
@@ -2044,7 +2257,12 @@ def main():
             root.destroy()
             if again and relaunch_as_admin():
                 sys.exit(0)
-    App().mainloop()
+    server = start_instance_server()
+    try:
+        App().mainloop()
+    finally:
+        if server:
+            server.close()
 
 
 if __name__ == "__main__":

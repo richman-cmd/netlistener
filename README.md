@@ -1,6 +1,6 @@
 # NetListener
 
-**Sürüm 0.01** · [Sürüm notları](CHANGELOG.md) · [İndir](https://github.com/richman-cmd/netlistener/releases/latest)
+**Sürüm 0.02** · [Sürüm notları](CHANGELOG.md) · [İndir](https://github.com/richman-cmd/netlistener/releases/latest)
 
 Windows için ağ izleme ve hız sınırlama aracı. Hangi programın interneti ne kadar kullandığını canlı gösterir; programlara, İnternet / Yerel ağ trafiğine ya da tüm bilgisayara indirme ve yükleme sınırı koymanı sağlar.
 
@@ -13,22 +13,24 @@ Windows için ağ izleme ve hız sınırlama aracı. Hangi programın interneti 
 - **Öncelik:** Düşük / Normal / Yüksek / Kritik. Bir sınır dolduğunda yüksek öncelikli program önce geçer.
 - **İnterneti tamamen engelleme:** Windows Güvenlik Duvarı kuralıyla, sağ tık menüsünden
 - **Tüm bağdaştırıcılar:** Ethernet, Wi-Fi, VPN, mobil paylaşım. Sonradan bağlananlar otomatik eklenir.
+- **Sistem tepsisi:** çarpı programı kapatmaz, saatin yanındaki simgeye indirir; izleme ve sınırlar çalışmaya devam eder. Çıkış yalnızca tepsi menüsünden.
+- **Tek kopya:** program ikinci kez açılırsa yeni kopya başlamaz, açık olan pencere öne gelir.
 - Canlı grafik, arama, sıralama, programı sonlandırma, dosya konumunu açma
 
 ## Kurulum
 
-1. **İndir:** [Son sürüm sayfasından](https://github.com/richman-cmd/netlistener/releases/latest) `netlistener-0.01.zip` dosyasını indir ve bir klasöre çıkar.
+1. **İndir:** [Son sürüm sayfasından](https://github.com/richman-cmd/netlistener/releases/latest) `netlistener-0.02.zip` dosyasını indir ve bir klasöre çıkar.
 2. **Python 3:** [python.org](https://www.python.org/downloads/) adresinden kur. Kurulumun ilk ekranında **"Add Python to PATH"** kutusunu işaretle.
 3. **Npcap:** [npcap.com](https://npcap.com/#download) adresinden kur. Seçenekler ekranında **"Install Npcap in WinPcap API-compatible Mode"** işaretli olsun, diğer iki kutu boş kalabilir.
 4. **Bağımlılıklar:** Zip'i çıkardığın klasörde adres çubuğuna `cmd` yazıp Enter'a bas, açılan pencerede şunu çalıştır:
    ```
    pip install -r requirements.txt
    ```
-   Bu komut üç kütüphaneyi kurar: **psutil** (programları bulur), **scapy** (trafiği dinler) ve **pydivert** (hız sınırlayıcı). İstersen tek tek de kurabilirsin:
+   Bu komut şu kütüphaneleri kurar: **psutil** (programları bulur), **scapy** (trafiği dinler), **pydivert** (hız sınırlayıcı), **pystray** ve **Pillow** (sistem tepsisi simgesi). İstersen tek tek de kurabilirsin:
    ```
-   pip install psutil scapy pydivert
+   pip install psutil scapy pydivert pystray pillow
    ```
-   pydivert olmadan program yine açılır ve trafiği gösterir, ama hız sınırı koyamazsın.
+   pydivert olmadan program yine açılır ve trafiği gösterir, ama hız sınırı koyamazsın. pystray olmadan tepsi simgesi olmaz; o durumda çarpı pencereyi simge durumuna küçültür ve araç çubuğunda bir **Çıkış** düğmesi görünür.
 5. **Çalıştır:** `netlistener.py` dosyasına çift tıkla. "Yönetici olarak yeniden başlatılsın mı?" sorusuna ve Windows'un izin penceresine **Evet** de.
 
 Konsol penceresi açılmasın istersen dosyanın uzantısını `.pyw` yap.
@@ -38,6 +40,8 @@ Konsol penceresi açılmasın istersen dosyanın uzantısını `.pyw` yap.
 | Belirti | Çözüm |
 |---|---|
 | "Paket dinlenemiyor" uyarısı | Npcap kurulu mu, program yönetici olarak mı açıldı, kontrol et |
+| Tepsi simgesi yok, araç çubuğunda "Çıkış" düğmesi var | `pip install pystray pillow` çalıştır, programı yeniden aç |
+| Saatin yanında simge görünmüyor | Görev çubuğundaki **^** okuna tıkla; simgeyi oradan görev çubuğuna sürükleyebilirsin |
 | "pydivert kütüphanesi gerekiyor" | `pip install pydivert` çalıştır, programı yeniden aç |
 | Hız sınırlayıcı hata veriyor | Programı yönetici olarak aç. Antivirüs WinDivert'i engelliyorsa izin ver |
 | `pip` komutu bulunamadı | Python kurulumunda "Add Python to PATH" işaretlenmemiş; `py -m pip install -r requirements.txt` dene |
@@ -54,6 +58,9 @@ Konsol penceresi açılmasın istersen dosyanın uzantısını `.pyw` yap.
 | Bir programın bağlantılarını gör | Programın solundaki oka tıkla |
 | Grafikte göster | Satıra tıkla (Esc: toplama dön) |
 | Engelle, sonlandır, ayrıntılar | Sağ tık |
+| Pencereyi gizle | Çarpıya bas: program tepsiye iner, çalışmaya devam eder |
+| Pencereyi geri aç | Tepsi simgesine tıkla ya da programı yeniden çalıştır |
+| Programı tamamen kapat | Tepsi simgesine sağ tık → **Çıkış** |
 | Sırala | Sütun başlığına tıkla |
 
 ## Nasıl çalışır

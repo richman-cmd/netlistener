@@ -1,5 +1,18 @@
 # Sürüm notları
 
+## 0.02 — 9 Kasım 2026
+
+### Yeni
+- Sistem tepsisi simgesi: pencerenin çarpısı programı kapatmaz, saatin yanındaki simgeye indirir. İzleme ve hız sınırları arka planda çalışmaya devam eder.
+- Programı tamamen kapatmak için tepsi simgesine sağ tıklayıp **Çıkış**'ı seç.
+- Tepsi simgesinin üzerine gelince anlık indirme/yükleme hızı ve açık sınır sayısı görünür; menüde de anlık hız yazar.
+- İlk kez tepsiye inerken nasıl kapatılacağını anlatan bir Windows bildirimi çıkar.
+- Tek kopya: program zaten açıkken yeniden çalıştırılırsa yeni kopya başlamaz, açık olan pencere öne gelir.
+- Pencere gizliyken tablo ve grafik çizilmez, işlemci kullanımı düşer.
+
+### Gereksinimler
+- Yeni: `pystray`, `Pillow` (`pip install -r requirements.txt` ile kurulur). Yoksa program yine çalışır; çarpı pencereyi simge durumuna küçültür ve araç çubuğunda Çıkış düğmesi görünür.
+
 ## 0.01 — 17 Ekim 2026
 
 İlk yayın.
