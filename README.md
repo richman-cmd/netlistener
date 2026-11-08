@@ -49,6 +49,15 @@ Konsol penceresi açılmasın istersen dosyanın uzantısını `.pyw` yap.
 
 ## Kullanım
 
+**Listedeki renkler**
+
+| Görünüm | Anlamı |
+|---|---|
+| 🟢 yeşil nokta, beyaz yazı | Şu an ağ kullanıyor |
+| 🔴 kırmızı nokta, kırmızı yazı | Daha önce ağ kullandı, şu an kullanmıyor (pasif) |
+| Yeşil yazı | Hız sınırı konmuş ve şu an ağ kullanıyor |
+| ⛔ üstü çizili simge, kalın kırmızı yazı, "· engelli" | İnternet erişimi güvenlik duvarıyla engellenmiş |
+
 | Ne yapmak istiyorsun | Nasıl |
 |---|---|
 | Sınırı aç / kapat | Sınır sütunundaki ☐ / ☑ kutusuna tıkla |

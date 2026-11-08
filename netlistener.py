@@ -105,6 +105,7 @@ UP_FILL = "#3a2716"
 DANGER = "#ff5d5d"
 LIMIT = "#3ddc97"
 ACTIVE = "#3ddc97"
+INACTIVE = "#f07178"   # daha önce ağ kullanmış, şu an kullanmayan
 SELECT = "#2c3b5e"
 
 
@@ -940,7 +941,7 @@ def make_icons(size):
     def new():
         return tk.PhotoImage(width=s, height=s)
 
-    for key, color in (("on", ACTIVE), ("off", "#4a5060")):
+    for key, color in (("on", ACTIVE), ("off", INACTIVE)):
         img = new()
         _fill_circle(img, s, color, 0.22)
         icons[key] = img
@@ -984,6 +985,16 @@ def make_icons(size):
     _fill_circle(img, s, MUTED, 0.2)
     _fill_circle(img, s, PANEL, 0.1)
     icons["conn"] = img
+
+    img = new()  # engelli: üstü çizili kırmızı halka
+    _fill_circle(img, s, DANGER, 0.42)
+    _fill_circle(img, s, PANEL, 0.27)
+    t = max(1, s // 9)
+    for i in range(s):
+        j = s - 1 - i
+        if (i - (s - 1) / 2) ** 2 + (j - (s - 1) / 2) ** 2 <= (s * 0.42) ** 2:
+            img.put(DANGER, to=(i, max(j - t // 2, 0), i + 1, min(j + t - t // 2, s)))
+    icons["blocked"] = img
     return icons
 
 
@@ -1311,7 +1322,8 @@ class App(tk.Tk):
         self.tree.tag_configure("group", foreground=MUTED)
         self.tree.tag_configure("pc", font=self.f_bold)
         self.tree.tag_configure("limited", foreground=LIMIT)
-        self.tree.tag_configure("blocked", foreground=DANGER)
+        self.tree.tag_configure("inactive", foreground=INACTIVE)
+        self.tree.tag_configure("blocked", foreground=DANGER, font=self.f_bold)
         self.tree.tag_configure("conn", foreground="#b9bfcc")
         self.tree.tag_configure("sel", background=SELECT)
         self._update_headings()
@@ -1585,9 +1597,10 @@ class App(tk.Tk):
             values = ("" if not known else pid_txt, fmt_rate(r.d, u), fmt_rate(r.u, u), f"{r.share:.1f}%", prio,
                       self._limit_cell(lim[0]) if known else "", self._limit_cell(lim[1]) if known else "",
                       fmt_size(r.td + r.tu))
-            state = "blocked" if blocked else ("limited" if any(lim) else ("" if active else "idle"))
+            # engelli > pasif (kırmızı) > sınırlı (yeşil) > aktif
+            state = "blocked" if blocked else ("inactive" if not active else ("limited" if any(lim) else ""))
             name = r.name + ("   · engelli" if blocked else "")
-            self._put(iid, "pc", i, f"  {name}", self.icons["on" if active else "off"], values,
+            self._put(iid, "pc", i, f"  {name}", self.icons["blocked" if blocked else ("on" if active else "off")], values,
                       tags_for(iid, "odd" if i % 2 else "", state), open_=False)
 
             # Bağlantılar (yalnızca açık programlar için doldurulur)
@@ -1619,7 +1632,7 @@ class App(tk.Tk):
                 self._put(cid, iid, j, label, self.icons["conn"],
                           (str(pid) if pid != UNKNOWN else "", fmt_rate(cd, u), fmt_rate(cu, u),
                            "", "", "", "", ""),
-                          tags_for(cid, "conn" if cd + cu else "idle"))
+                          tags_for(cid, "conn" if cd + cu else "inactive"))
             self._prune(iid, ckeep)
 
         self._prune("pc", keep)

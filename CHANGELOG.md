@@ -9,6 +9,7 @@
 - İlk kez tepsiye inerken nasıl kapatılacağını anlatan bir Windows bildirimi çıkar.
 - Tek kopya: program zaten açıkken yeniden çalıştırılırsa yeni kopya başlamaz, açık olan pencere öne gelir.
 - Pencere gizliyken tablo ve grafik çizilmez, işlemci kullanımı düşer.
+- Daha önce ağ kullanmış ama şu an kullanmayan (pasif) programlar ve bağlantılar kırmızı görünür. Engelli programlar karışmasın diye ayrı bir üstü çizili simge ve kalın yazıyla gösterilir.
 
 ### Gereksinimler
 - Yeni: `pystray`, `Pillow` (`pip install -r requirements.txt` ile kurulur). Yoksa program yine çalışır; çarpı pencereyi simge durumuna küçültür ve araç çubuğunda Çıkış düğmesi görünür.
