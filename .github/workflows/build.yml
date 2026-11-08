@@ -1,0 +1,80 @@
+# NetListener.exe'yi Windows'ta derler.
+#  - main dalına her gönderimde: exe, Actions sayfasından "NetListener-exe" olarak indirilebilir.
+#  - GitHub'da bir sürüm (release) yayınlandığında: exe o sürüm sayfasına otomatik eklenir.
+#  - Elle çalıştırma (Actions > Build NetListener.exe > Run workflow): isteğe bağlı bir
+#    sürüm etiketi verilirse exe o sürüme eklenir (ör. v0.03).
+name: Build NetListener.exe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "netlistener.py"
+      - "requirements.txt"
+      - "build/build_exe.py"
+      - ".github/workflows/build.yml"
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Exe'nin ekleneceği sürüm etiketi (boş bırakılırsa yalnızca derlenir)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Bağımlılıkları kur
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+
+      - name: Exe'yi derle
+        run: python build/build_exe.py
+
+      - name: Exe'yi kontrol et
+        shell: pwsh
+        run: |
+          $exe = Get-Item dist/NetListener.exe
+          "{0}  {1:N1} MB" -f $exe.Name, ($exe.Length / 1MB)
+          $v = $exe.VersionInfo
+          "Dosya sürümü: $($v.FileVersion)  Ürün: $($v.ProductName)"
+          if ($exe.Length -lt 5MB) { throw "Exe beklenenden küçük, paketleme eksik olabilir" }
+
+      - name: Exe'yi çalıştırıp öz test yap
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          Remove-Item selftest.txt -ErrorAction SilentlyContinue
+          $p = Start-Process -FilePath dist/NetListener.exe -ArgumentList '--selftest' -WorkingDirectory $PWD -Wait -PassThru
+          Get-Content selftest.txt -Encoding utf8
+          if ($p.ExitCode -ne 0) { throw "Öz test başarısız (çıkış kodu $($p.ExitCode))" }
+
+      - name: Exe'yi Actions sayfasına yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetListener-exe
+          path: dist/NetListener.exe
+          retention-days: 30
+
+      - name: Exe'yi sürüm sayfasına ekle
+        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
+        run: gh release upload "$env:TAG" dist/NetListener.exe --clobber --repo "${{ github.repository }}"

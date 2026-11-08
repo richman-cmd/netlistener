@@ -3,3 +3,8 @@ __pycache__/
 .venv/
 venv/
 *.log
+dist/
+build/pyinstaller/
+build/netlistener.ico
+build/version_info.txt
+*.spec

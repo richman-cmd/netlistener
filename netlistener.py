@@ -60,11 +60,23 @@ import tkinter as tk
 from tkinter import font as tkfont
 from tkinter import messagebox, ttk
 
-__version__ = "0.02"
+__version__ = "0.03"
 IS_WIN = os.name == "nt"
+FROZEN = bool(getattr(sys, "frozen", False))   # PyInstaller ile derlenmiş .exe mi?
+
+
+SELFTEST = "--selftest" in sys.argv   # derleme kontrolü: pencere açmadan paketleri dener
+
+
+def _selftest_write(text):
+    with open(os.path.join(os.getcwd(), "selftest.txt"), "a", encoding="utf-8") as f:
+        f.write(text + "\n")
 
 
 def _fatal(msg):
+    if SELFTEST:
+        _selftest_write("HATA: " + msg)
+        sys.exit(2)
     root = tk.Tk()
     root.withdraw()
     messagebox.showerror("NetListener", msg)
@@ -819,6 +831,10 @@ def windowless_python():
 
 
 def relaunch_as_admin():
+    if FROZEN:  # .exe: programın kendisini yönetici olarak aç
+        params = " ".join(f'"{a}"' for a in sys.argv[1:])
+        rc = ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
+        return rc > 32
     script = os.path.abspath(sys.argv[0])
     params = " ".join(f'"{a}"' for a in [script] + sys.argv[1:])
     exe = windowless_python() or sys.executable
@@ -832,7 +848,7 @@ _LAUNCHERS = {"py.exe", "pyw.exe", "python.exe", "pythonw.exe", "python3.exe"}
 def console_window_is_ours():
     """Siyah pencere yalnızca bu program için mi açıldı (çift tıklama), yoksa
     kullanıcının kendi açtığı bir Komut İstemi mi? Yalnızca ilkinde gizleriz."""
-    if not IS_WIN:
+    if not IS_WIN or FROZEN:  # .exe zaten konsolsuz derlenir
         return False
     try:
         k32 = ctypes.windll.kernel32
@@ -860,6 +876,8 @@ def hide_console_window():
 
 def relaunch_windowless():
     """Aynı programı konsolsuz başlat; başarılıysa True (çağıran çıkmalı)."""
+    if FROZEN:
+        return False
     exe = windowless_python()
     if not exe or os.path.normcase(exe) == os.path.normcase(sys.executable or ""):
         return False
@@ -1757,7 +1775,10 @@ class App(tk.Tk):
     def _shaper_ready(self):
         if self.shaper.available:
             return True
-        if IS_WIN:
+        if IS_WIN and FROZEN:
+            messagebox.showinfo("Hız sınırı", "Hız sınırlayıcı yüklenemedi. Antivirüs programı WinDivert "
+                                "sürücüsünü engellemiş olabilir; NetListener'a izin verip programı yeniden açın.")
+        elif IS_WIN:
             messagebox.showinfo("Hız sınırı", "Hız sınırlamak için pydivert kütüphanesi gerekiyor.\n\n"
                                 "Komut İstemi'nde çalıştırın:\n    pip install pydivert\n\nSonra NetListener'ı yeniden açın.")
         else:
@@ -2320,7 +2341,44 @@ class App(tk.Tk):
 
 
 # =========================================================================== #
+def run_selftest():
+    ok = True
+
+    def check(label, cond, detail=""):
+        nonlocal ok
+        ok = ok and bool(cond)
+        _selftest_write(f"{'TAMAM' if cond else 'HATA '}  {label}  {detail}".rstrip())
+
+    _selftest_write(f"NetListener {__version__}  exe={FROZEN}  python={sys.version.split()[0]}")
+    check("psutil", psutil is not None, getattr(psutil, "__version__", ""))
+    check("scapy katmanları", IP is not None and TCP is not None and UDP is not None)
+    check("pydivert", pydivert is not None, getattr(pydivert, "__version__", "") if pydivert else "")
+    if pydivert is not None:
+        folder = os.path.join(os.path.dirname(pydivert.__file__), "windivert_dll")
+        for f in ("WinDivert64.dll", "WinDivert64.sys"):
+            check(f, os.path.isfile(os.path.join(folder, f)))
+    check("Pillow", Image is not None)
+    check("pystray", pystray is not None)
+    try:
+        img = tray_image(64)
+        check("tepsi simgesi", img.size == (64, 64))
+    except Exception as e:
+        check("tepsi simgesi", False, repr(e))
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        root.update()
+        root.destroy()
+        check("tkinter penceresi", True)
+    except Exception as e:
+        check("tkinter penceresi", False, repr(e))
+    _selftest_write("SONUÇ: " + ("BAŞARILI" if ok else "BAŞARISIZ"))
+    return 0 if ok else 1
+
+
 def main():
+    if SELFTEST:
+        sys.exit(run_selftest())
     if signal_existing():  # zaten açık: pencereyi öne getir ve çık
         sys.exit(0)
     if IS_WIN:
