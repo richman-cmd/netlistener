@@ -67,6 +67,11 @@ def make_version_file(path, version):
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):  # Windows konsolu Türkçe karakterleri yazabilsin
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     if os.name != "nt":
         sys.exit("Bu betik Windows'ta çalıştırılmalıdır (exe Windows'ta derlenir).")
     version = read_version()

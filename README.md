@@ -1,6 +1,6 @@
 # NetListener
 
-**Sürüm 0.02** · [Sürüm notları](CHANGELOG.md) · [İndir](https://github.com/richman-cmd/netlistener/releases/latest)
+**Sürüm 0.03** · [Sürüm notları](CHANGELOG.md) · [İndir](https://github.com/richman-cmd/netlistener/releases/latest)
 
 Windows için ağ izleme ve hız sınırlama aracı. Hangi programın interneti ne kadar kullandığını canlı gösterir; programlara, İnternet / Yerel ağ trafiğine ya da tüm bilgisayara indirme ve yükleme sınırı koymanı sağlar.
 
@@ -19,9 +19,27 @@ Windows için ağ izleme ve hız sınırlama aracı. Hangi programın interneti 
 
 ## Kurulum
 
-1. **İndir:** [Son sürüm sayfasından](https://github.com/richman-cmd/netlistener/releases/latest) `netlistener-0.02.zip` dosyasını indir ve bir klasöre çıkar.
+### Kolay yol: NetListener.exe (önerilen)
+
+Python ya da komut satırı gerekmez.
+
+1. **Npcap'i kur:** [npcap.com](https://npcap.com/#download) adresinden indir. Seçenekler ekranında **"Install Npcap in WinPcap API-compatible Mode"** işaretli olsun, diğer iki kutu boş kalabilir.
+   *Npcap'in lisansı NetListener'ın içinde dağıtılmasına izin vermediği için ayrıca kurulması gerekiyor.*
+2. **NetListener.exe'yi indir:** [Son sürüm sayfasından](https://github.com/richman-cmd/netlistener/releases/latest) `NetListener.exe` dosyasını indir ve istediğin bir klasöre (ör. Belgeler) koy.
+3. **Çalıştır:** Çift tıkla, Windows'un yönetici izni penceresine **Evet** de.
+
+İlk açılışta iki uyarı görebilirsin; ikisi de exe imzalı olmadığı için çıkar:
+
+- **"Windows kişisel bilgisayarınızı korudu"** (SmartScreen): **Ek bilgi** → **Yine de çalıştır**.
+- **Antivirüs uyarısı:** NetListener hız sınırı için ağ paketlerine müdahale eden WinDivert sürücüsünü kullanır; bazı antivirüsler bu yüzden "şüpheli araç" der. Kaynak kodu bu depoda açıktır. NetListener'a izin verip istisnalara ekleyebilirsin.
+
+Kısayol için `NetListener.exe`'ye sağ tıkla → **Gönder** → **Masaüstü (kısayol oluştur)**.
+
+### Python ile (geliştiriciler için)
+
+1. **Kodu indir:** [Son sürüm sayfasından](https://github.com/richman-cmd/netlistener/releases/latest) zip dosyasını indir ve bir klasöre çıkar.
 2. **Python 3:** [python.org](https://www.python.org/downloads/) adresinden kur. Kurulumun ilk ekranında **"Add Python to PATH"** kutusunu işaretle.
-3. **Npcap:** [npcap.com](https://npcap.com/#download) adresinden kur. Seçenekler ekranında **"Install Npcap in WinPcap API-compatible Mode"** işaretli olsun, diğer iki kutu boş kalabilir.
+3. **Npcap:** yukarıdaki gibi kur.
 4. **Bağımlılıklar:** Zip'i çıkardığın klasörde adres çubuğuna `cmd` yazıp Enter'a bas, açılan pencerede şunu çalıştır:
    ```
    pip install -r requirements.txt
@@ -33,15 +51,27 @@ Windows için ağ izleme ve hız sınırlama aracı. Hangi programın interneti 
    pydivert olmadan program yine açılır ve trafiği gösterir, ama hız sınırı koyamazsın. pystray olmadan tepsi simgesi olmaz; o durumda çarpı pencereyi simge durumuna küçültür ve araç çubuğunda bir **Çıkış** düğmesi görünür.
 5. **Çalıştır:** `netlistener.py` dosyasına çift tıkla. "Yönetici olarak yeniden başlatılsın mı?" sorusuna ve Windows'un izin penceresine **Evet** de.
 
-Açılışta bir an görünen siyah konsol penceresi kendiliğinden kapanır; program arka planda (konsolsuz `pythonw` ile) çalışır ve yalnızca kendi penceresi ile tepsi simgesi kalır. Komut İstemi'nden `python netlistener.py` ile çalıştırırsan o pencereye dokunulmaz. Hata kayıtları `%APPDATA%\NetWatch\netlistener.log` dosyasına yazılır.
+Açılışta bir an görünen siyah konsol penceresi kendiliğinden kapanır; program arka planda (konsolsuz `pythonw` ile) çalışır. Komut İstemi'nden `python netlistener.py` ile çalıştırırsan o pencereye dokunulmaz. Hata kayıtları `%APPDATA%\NetWatch\netlistener.log` dosyasına yazılır.
+
+### Exe'yi kendin derlemek
+
+Windows'ta, depo klasöründe:
+```
+pip install -r requirements.txt pyinstaller
+python build/build_exe.py
+```
+Sonuç `dist\NetListener.exe` olur. GitHub Actions aynı işi her gönderimde yapar: exe'yi derler, `--selftest` ile içindeki kütüphaneleri ve sürücü dosyalarını kontrol eder, Actions sayfasına yükler; bir sürüm yayınlandığında exe'yi sürüm sayfasına otomatik ekler.
 
 ### Sorun giderme
 
 | Belirti | Çözüm |
 |---|---|
+| "Windows kişisel bilgisayarınızı korudu" | **Ek bilgi** → **Yine de çalıştır** (exe imzalı olmadığı için çıkar) |
+| Antivirüs exe'yi siliyor ya da karantinaya alıyor | Karantinadan geri yükle ve NetListener.exe'yi istisnalara ekle |
 | "Paket dinlenemiyor" uyarısı | Npcap kurulu mu, program yönetici olarak mı açıldı, kontrol et |
 | Tepsi simgesi yok, araç çubuğunda "Çıkış" düğmesi var | `pip install pystray pillow` çalıştır, programı yeniden aç |
 | Saatin yanında simge görünmüyor | Görev çubuğundaki **^** okuna tıkla; simgeyi oradan görev çubuğuna sürükleyebilirsin |
+| "Hız sınırlayıcı yüklenemedi" (exe) | Antivirüs WinDivert sürücüsünü engellemiş olabilir; NetListener'a izin ver |
 | "pydivert kütüphanesi gerekiyor" | `pip install pydivert` çalıştır, programı yeniden aç |
 | Hız sınırlayıcı hata veriyor | Programı yönetici olarak aç. Antivirüs WinDivert'i engelliyorsa izin ver |
 | `pip` komutu bulunamadı | Python kurulumunda "Add Python to PATH" işaretlenmemiş; `py -m pip install -r requirements.txt` dene |

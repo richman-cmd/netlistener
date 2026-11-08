@@ -1,5 +1,17 @@
 # Sürüm notları
 
+## 0.03 — 9 Kasım 2026
+
+### Yeni
+- **Tek dosyalık `NetListener.exe`:** Python, `pip` ya da komut satırı gerekmez. Kurulum artık iki adım: Npcap'i kur, exe'yi indirip çift tıkla.
+- Exe açılışta Windows yönetici iznini doğrudan ister (tek onay); siyah konsol penceresi hiç açılmaz.
+- Exe'nin kendi simgesi ve sürüm bilgisi var (Özellikler → Ayrıntılar).
+- GitHub Actions exe'yi her gönderimde Windows'ta derler, öz testten geçirir ve yayınlanan sürüme otomatik ekler.
+- `--selftest` seçeneği: pencere açmadan exe'nin içindeki kütüphaneleri ve sürücü dosyalarını kontrol eder.
+
+### Belgeler
+- README'de "Kolay yol: NetListener.exe" kurulumu, SmartScreen ve antivirüs uyarıları, exe'yi kendin derleme adımları.
+
 ## 0.02 — 9 Kasım 2026
 
 ### Yeni
