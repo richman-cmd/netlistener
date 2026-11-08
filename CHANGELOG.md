@@ -12,6 +12,9 @@
 - Siyah konsol penceresi kalmaz: çift tıklamayla açıldığında program kendini konsolsuz (`pythonw`) yeniden başlatır. Komut İstemi'nden çalıştırıldığında konsola dokunulmaz. Hata kayıtları `%APPDATA%\NetWatch\netlistener.log` dosyasına yazılır.
 - Daha önce ağ kullanmış ama şu an kullanmayan (pasif) programlar ve bağlantılar kırmızı görünür. Engelli programlar karışmasın diye ayrı bir üstü çizili simge ve kalın yazıyla gösterilir.
 
+### Belgeler
+- README'ye "Sık sorulan sorular" bölümü eklendi: "(bilinmeyen / sistem)" satırı, sık görülen adresler, renkler, tepsi, "yerel" etiketi, ayar dosyaları.
+
 ### Gereksinimler
 - Yeni: `pystray`, `Pillow` (`pip install -r requirements.txt` ile kurulur). Yoksa program yine çalışır; çarpı pencereyi simge durumuna küçültür ve araç çubuğunda Çıkış düğmesi görünür.
 

@@ -73,6 +73,52 @@ Açılışta bir an görünen siyah konsol penceresi kendiliğinden kapanır; pr
 | Programı tamamen kapat | Tepsi simgesine sağ tık → **Çıkış** |
 | Sırala | Sütun başlığına tıkla |
 
+## Sık sorulan sorular
+
+### "(bilinmeyen / sistem)" satırı ne?
+
+NetListener'ın hangi programa ait olduğunu tespit edemediği trafik. Bir sorun ya da tehlike işareti değildir; genellikle toplam trafiğin çok küçük bir kısmıdır. Üç sebebi olabilir:
+
+1. **Yeni bağlantıların ilk paketleri:** Açık bağlantıların listesi saniyede iki kez yenilenir. Bir program yeni bağlantı açtığında ilk birkaç paket liste yenilenmeden gelirse sahibi henüz bilinmez.
+2. **Çok kısa süren bağlantılar:** Bir anda açılıp kapanan bağlantılar listeye hiç girmeden bitebilir.
+3. **Windows servisleri:** Bazı sistem trafiğinin sahibi Windows tarafından gösterilmez.
+
+Satırın solundaki oka tıklayınca bu trafiğin hangi adreslere gittiği görünür. Sık rastlanan adresler:
+
+| Adres | Ne olduğu |
+|---|---|
+| `239.255.255.250:1900` · yerel | Windows'un evdeki cihazları (modem, TV, yazıcı) araması (UPnP / SSDP) |
+| `224.0.0.252:5355` · yerel | Windows'un yerel ağda bilgisayar adı sorgulaması (LLMNR) |
+| `224.0.0.251:5353` · yerel | Yerel ağda cihaz keşfi (mDNS) |
+| `dns.google:443` | Güvenli DNS: tarayıcı ya da Windows site adreslerini Google'a şifreli soruyor |
+| `...1e100.net` | Google sunucuları |
+| `...amazonaws.com` | Amazon bulut sunucuları; pek çok uygulama ve site burada çalışır |
+| `104.16.x – 104.31.x`, `162.159.x` | Cloudflare; Discord dahil birçok site bunun arkasındadır |
+
+### Satırlar neden kırmızı?
+
+Kırmızı satır, o programın (ya da bağlantının) bu oturumda daha önce ağ kullandığını ama şu an kullanmadığını gösterir. Program yeniden ağ kullanmaya başlayınca yeşil noktaya döner. Renklerin tamamı için yukarıdaki **Listedeki renkler** tablosuna bak.
+
+### Çarpıya bastım, program kapandı mı?
+
+Hayır, saatin yanındaki tepsi simgesine indi; izleme ve hız sınırları çalışmaya devam ediyor. Tamamen kapatmak için tepsi simgesine sağ tıklayıp **Çıkış**'ı seç.
+
+### "yerel" etiketi ne demek?
+
+O bağlantı internete değil, evdeki/ofisteki ağa (modem, diğer bilgisayarlar, yazıcı, NAS) gidiyor demektir. İnternet'e konan hız sınırı bu trafiği etkilemez; ayrı sınır için **Filtreler → Yerel ağ** satırını kullan.
+
+### Ayarlarım nerede saklanıyor?
+
+`%APPDATA%\NetWatch\` klasöründe:
+
+| Dosya | İçeriği |
+|---|---|
+| `limitler.json` | Hız sınırları ve öncelikler |
+| `engellenenler.json` | İnterneti engellenen programlar |
+| `netlistener.log` | Hata kayıtları |
+
+Klasörün adı eski sürümle uyum için `NetWatch` olarak kaldı.
+
 ## Nasıl çalışır
 
 - **İzleme:** [scapy](https://scapy.net/) ve Npcap ile tüm bağdaştırıcılardaki paketler dinlenir. Her paket, yerel port numarası üzerinden [psutil](https://github.com/giampaolo/psutil) ile sahibi olan programa eşlenir.
@@ -85,6 +131,6 @@ Sınırlar, öncelikler ve engellenen programların listesi `%APPDATA%\NetWatch\
 
 - Hız sınırlayıcı yalnızca Windows'ta çalışır. İzleme Linux ve macOS'ta da çalışır (`sudo` ile).
 - İndirme sınırı paketleri geciktirerek çalışır. Bir indirme başladığında hız ilk bir iki saniye sınırın biraz üstüne çıkabilir, sonra oturur.
-- Çok kısa süren bağlantılar bazen bir programa eşlenemez. Bu trafik "(bilinmeyen / sistem)" satırında görünür.
+- Yeni açılan bağlantıların ilk paketleri ve çok kısa süren bağlantılar bazen bir programa eşlenemez. Bu trafik "(bilinmeyen / sistem)" satırında görünür (ayrıntı için [Sık sorulan sorular](#bilinmeyen--sistem-satırı-ne)).
 - VPN kullanırken aynı trafik hem VPN programında hem de asıl uygulamada görünür.
 - Bazı antivirüs programları WinDivert sürücüsünü "şüpheli araç" olarak işaretleyebilir.
